@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Check — Coach G Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fdfa;
+            --surface: #ffffff;
+            --surface2: #f0f7f3;
+            --border: #d8eadd;
+            --text: #1a2e25;
+            --muted: #627d72;
+            --accent: #198754; 
+            --green: #2ecc71;
+            --yellow: #f1c40f;
+            --red: #e74c3c;
+            --shadow: 0 10px 30px rgba(25, 135, 84, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+
+        .screen { display: none; padding: 40px 20px; max-width: 900px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .coach-avatar {
+            width: 100px; height: 100px; background: var(--accent);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 50px; margin: 0 auto 20px; border: 6px solid white; box-shadow: var(--shadow);
+        }
+
+        .badge {
+            display: inline-flex; align-items: center; background: white; border: 1px solid var(--border);
+            padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 20px;
+        }
+
+        .hero { font-size: clamp(32px, 6vw, 42px); line-height: 1.1; margin-bottom: 20px; color: #104e32; font-weight: 800; }
+        .hero span { color: var(--accent); }
+
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 35px; margin-bottom: 25px; box-shadow: var(--shadow); position: relative;}
+
+        .btn {
+            background: var(--accent); color: white; border: none; padding: 20px 32px;
+            border-radius: 100px; font-family: 'Syne', sans-serif; font-weight: 700;
+            cursor: pointer; transition: 0.3s; width: 100%; font-size: 16px; box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3); filter: brightness(1.1); }
+        .btn:disabled { background: #b4c7be; cursor: not-allowed; box-shadow: none; }
+        .btn.outline { background: white; border: 2px solid var(--accent); color: var(--accent); box-shadow: none; }
+        .btn.sm { padding: 10px 20px; font-size: 13px; width: auto; }
+
+        input {
+            width: 100%; background: #fff; border: 2px solid var(--border);
+            padding: 18px; border-radius: 16px; color: var(--text); margin-bottom: 20px; font-size: 16px; outline: none;
+        }
+
+        .subject-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .sub-tile {
+            background: white; padding: 30px; border-radius: 24px; border: 2px solid var(--border);
+            cursor: pointer; transition: 0.3s;
+        }
+        .sub-tile.done { border-color: var(--green); background: #f0fff4; }
+        .sub-tile:hover:not(.done) { border-color: var(--accent); transform: translateY(-5px); box-shadow: var(--shadow); }
+
+        .opt {
+            background: white; border: 2px solid var(--border); padding: 18px 22px;
+            border-radius: 16px; width: 100%; text-align: left; color: var(--text); margin-bottom: 12px; cursor: pointer; 
+            font-size: 16px; transition: 0.2s; font-weight: 500; display: flex; align-items: flex-start; gap: 12px;
+        }
+        .opt.selected { border-color: var(--accent); background: #eef7f2; }
+        .opt.correct { border-color: var(--green); background: #ecfdf5; color: #065f46; font-weight: 700; }
+        .opt.wrong { border-color: var(--red); background: #fef2f2; color: #991b1b; }
+
+        .explanation-box {
+            background: #fffbe6; border: 2px dashed #f1c40f;
+            padding: 22px; border-radius: 16px; margin-top: 20px; display: none; color: #856404;
+        }
+
+        .toggle-group { display: flex; background: #e0eee6; padding: 6px; border-radius: 100px; margin-bottom: 25px; gap: 6px; }
+        .toggle-btn { 
+            flex: 1; padding: 12px; border-radius: 100px; border: none; background: transparent; 
+            color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.3s;
+        }
+        .toggle-btn.active { background: white; color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .overlay {
+            display: none; position: fixed; inset: 0; background: rgba(248, 253, 250, 0.98);
+            z-index: 1000; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .overlay.active { display: flex; }
+        .spinner { width: 60px; height: 60px; border: 6px solid #d1e7dd; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .chat-ui { background: #f1f8f4; border-radius: 16px; padding: 15px; margin-top: 15px; border: 1px solid var(--border); }
+        .chat-msg { margin-bottom: 10px; padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 85%; }
+        .msg-ai { background: var(--accent); color: white; align-self: flex-start; }
+        .msg-user { background: white; color: var(--text); border: 1px solid var(--border); align-self: flex-end; margin-left: auto; }
+        .chat-input-row { display: flex; gap: 10px; margin-top: 10px; }
+        .chat-input-row input { margin-bottom: 0; padding: 12px; font-size: 14px; }
+        
+        .table-wrap { overflow-x: auto; background: white; border-radius: 20px; border: 1px solid var(--border); padding: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th { text-align: left; padding: 18px; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; }
+        td { padding: 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+
+        .settings-trigger { position: fixed; bottom: 20px; right: 20px; cursor: pointer; opacity: 0.5; transition: 0.3s; }
+        .settings-trigger:hover { opacity: 1; transform: rotate(30deg); }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="loader">
+    <div class="spinner"></div>
+    <h2 id="loader-msg" style="margin-top: 25px; color: var(--accent);">Generating Content...</h2>
+    <p style="color: var(--muted); margin-top: 10px;">Tailoring to the 2025 Ethiopian Remedial Guidelines</p>
+</div>
+
+<!-- WELCOME SCREEN -->
+<div id="s-reg" class="screen active" style="text-align: center;">
+    <div class="coach-avatar">📚</div>
+    <div class="badge">REMEDIAL SUCCESS PROGRAM 2025</div>
+    <h1 class="hero">Empowering Your <span>University Journey</span>.</h1>
+    
+    <div class="card" id="reg-name-step">
+        <p style="margin-bottom: 25px; font-weight: 500; color: var(--muted);">What is your full name, student?</p>
+        <input type="text" id="in-name" placeholder="Enter Full Name">
+        <button class="btn" onclick="askReturning()">Start Diagnostic →</button>
+    </div>
+
+    <div class="card" id="reg-return-step" style="display: none;">
+        <h3>Welcome, <span id="display-name" style="color: var(--accent)"></span></h3>
+        <p style="margin-bottom: 30px; margin-top: 10px; color: var(--muted);">Is this your first time taking the Smart Study Check?</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <button class="btn outline" onclick="register()">New Student</button>
+            <button class="btn" onclick="checkReturn()">Returning</button>
+        </div>
+    </div>
+
+    <!-- API KEY SETTINGS -->
+    <div id="settings-panel" style="display:none; margin-top:30px;" class="card">
+        <h4>Developer Settings</h4>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">If the AI isn't responding, enter a Gemini API Key below.</p>
+        <input type="password" id="api-override" placeholder="Enter API Key">
+        <button class="btn sm outline" onclick="document.getElementById('settings-panel').style.display='none'">Close</button>
+    </div>
+    <div class="settings-trigger" onclick="document.getElementById('settings-panel').style.display='block'">⚙️</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="s-hub" class="screen">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
+        <div>
+            <h1 style="font-size: 28px;">Student Dashboard</h1>
+            <p style="color: var(--muted);">Choose a subject to test your knowledge.</p>
+        </div>
+        <div class="badge" id="hub-count" style="background: var(--accent); color: white; border: none;">0/5 Subjects Done</div>
+    </div>
+    
+    <div class="subject-grid" id="hub-grid"></div>
+
+    <div id="final-btn-wrap" style="margin-top: 40px; display: none; text-align: center;">
+        <button class="btn" style="background: var(--yellow); color: #000;" onclick="finishAll()">🎉 GENERATE FINAL ADMISSION STRATEGY 🎉</button>
+    </div>
+
+    <div class="log-container" style="margin-top: 60px;">
+        <h3 style="margin-bottom: 25px; font-family: 'Syne';">Academic Progress Log</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Student Name</th><th>Math (50)</th><th>Phys (50)</th><th>Eng (100)</th><th>Bio (100)</th><th>Chem (100)</th><th>Total</th><th>Date</th></tr>
+                </thead>
+                <tbody id="log-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- EXAM SCREEN -->
+<div id="s-exam" class="screen">
+    <div style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="ex-title" style="color: var(--accent);">Subject</h2>
+            <div id="ex-progress" class="badge">Q 1/50</div>
+        </div>
+        <div class="toggle-group">
+            <button class="toggle-btn active" id="mode-now" onclick="setMode('now')">Show Answer Now</button>
+            <button class="toggle-btn" id="mode-later" onclick="setMode('later')">Show Later (Exam Mode)</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <p id="q-text" style="font-size: 20px; font-weight: 600; margin-bottom: 30px; line-height: 1.4;"></p>
+        <div id="q-opts"></div>
+        <div id="q-explanation" class="explanation-box"></div>
+        <button class="btn sm outline" id="tts-btn" style="display:none; margin-top:20px;" onclick="speakExplanation()">✨ Listen to Coach G</button>
+    </div>
+
+    <div style="display: flex; gap: 15px;">
+        <button class="btn" id="submit-btn" disabled onclick="handleSubmit()">Check Choice</button>
+        <button class="btn" id="next-btn" style="display: none;" onclick="handleNext()">Continue →</button>
+    </div>
+</div>
+
+<!-- RESULTS / REPORT -->
+<div id="s-report" class="screen">
+    <div style="text-align: center; margin-bottom: 40px;">
+        <div class="coach-avatar">📈</div>
+        <h1 class="hero" id="report-title">Performance Report</h1>
+        <div style="font-size: 60px; font-weight: 900; color: var(--accent);" id="final-total">0 / 100</div>
+    </div>
+    
+    <div class="card">
+        <h3 style="margin-bottom: 15px; color: var(--accent); font-family: 'Syne';">Coach G's Advice 👨‍🏫</h3>
+        <div id="strategy-content">Analyzing your results...</div>
+    </div>
+
+    <div id="review-section">
+        <h3 style="margin-bottom: 25px; font-family: 'Syne'; border-top: 2px solid var(--border); padding-top: 30px;">Deep Dive Review</h3>
+        <div id="review-list"></div>
+    </div>
+    
+    <button class="btn outline" style="margin-top:20px;" onclick="go('hub')">Return to Dashboard</button>
+</div>
+
+<script>
+// --- CONFIG & STATE ---
+let envApiKey = ""; // You can hardcode yours here if you want to pay for friends
+
+const SUBJECTS = [
+    { id: "math", name: "Mathematics", qs: 50, pts: 2 },
+    { id: "physics", name: "Physics", qs: 50, pts: 2 },
+    { id: "english", name: "English", qs: 100, pts: 1 },
+    { id: "biology", name: "Biology", qs: 100, pts: 1 },
+    { id: "chemistry", name: "Chemistry", qs: 100, pts: 1 }
+];
+
+let state = {
+    user: null,
+    currentSubIdx: 0,
+    questions: [],
+    qIdx: 0,
+    scores: {},
+    tempSelected: null,
+    mode: 'now',
+    history: JSON.parse(localStorage.getItem('remedial_v5_history') || '[]')
+};
+
+// --- HELPER: GET ACTIVE API KEY ---
+function getApiKey() {
+    const override = document.getElementById('api-override').value.trim();
+    return override || envApiKey;
+}
+
+// --- API WRAPPERS ---
+async function geminiText(prompt, system = "", isJson = true) {
+    const key = getApiKey();
+    if(!key) throw new Error("API Key Missing");
+
+    const config = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: system }] }
+    };
+    if (isJson) config.generationConfig = { responseMimeType: "application/json" };
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    
+    const text = data.candidates[0].content.parts[0].text;
+    return isJson ? JSON.parse(text) : text;
+}
+
+async function geminiTTS(text) {
+    const key = getApiKey();
+    if(!key) return;
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${key}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: `Say in a warm, encouraging teacher voice: ${text}` }] }],
+                generationConfig: { 
+                    responseModalities: ["AUDIO"],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                }
+            })
+        });
+        const data = await res.json();
+        const base64 = data.candidates[0].content.parts[0].inlineData.data;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+        new Audio(url).play();
+    } catch(e) { console.error("TTS Failed", e); }
+}
+
+// --- APP FLOW ---
+function askReturning() {
+    const val = document.getElementById('in-name').value.trim();
+    if(!val) return;
+    state.user = { name: val, completed: [], data: {} };
+    document.getElementById('display-name').textContent = val;
+    document.getElementById('reg-name-step').style.display = 'none';
+    document.getElementById('reg-return-step').style.display = 'block';
+}
+
+function checkReturn() {
+    const found = state.history.find(h => h.name.toLowerCase() === state.user.name.toLowerCase());
+    if(found) {
+        state.user.data = found.data;
+        state.user.completed = found.completed;
+    }
+    register();
+}
+
+function register() {
+    go('hub');
+    renderHub();
+    updateLogUI();
+}
+
+function go(scr) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-' + scr).classList.add('active');
+    window.scrollTo(0,0);
+}
+
+function renderHub() {
+    const grid = document.getElementById('hub-grid');
+    grid.innerHTML = '';
+    let done = 0;
+    SUBJECTS.forEach((sub, i) => {
+        const isDone = state.user.completed.includes(sub.id);
+        if(isDone) done++;
+        const div = document.createElement('div');
+        div.className = `sub-tile ${isDone ? 'done' : ''}`;
+        div.innerHTML = `
+            <div style="font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 10px; letter-spacing: 1px;">MODULE 0${i+1}</div>
+            <h3 style="margin-bottom: 8px; font-family: 'Syne';">${sub.name}</h3>
+            <p style="font-size: 14px; color: var(--muted);">${sub.qs} Questions Total</p>
+            <div style="margin-top: 20px; font-weight: 700; font-size: 13px; color: ${isDone ? 'var(--green)' : 'var(--accent)'}">
+                ${isDone ? '✓ COMPLETED' : 'START NOW →'}
+            </div>
+        `;
+        div.onclick = () => isDone ? showReport(sub.id) : startExam(i);
+        grid.appendChild(div);
+    });
+    document.getElementById('hub-count').textContent = `${done}/5 Subjects Done`;
+    if(done === 5) document.getElementById('final-btn-wrap').style.display = 'block';
+}
+
+async function startExam(idx) {
+    if(!getApiKey()) {
+        document.getElementById('settings-panel').style.display='block';
+        alert("Please set an API Key in settings first.");
+        return;
+    }
+    
+    state.currentSubIdx = idx;
+    const sub = SUBJECTS[idx];
+    document.getElementById('loader').classList.add('active');
+    document.getElementById('loader-msg').textContent = `Building ${sub.qs}-question bank for ${sub.name}...`;
+
+    try {
+        const prompt = `Generate exactly ${sub.qs} MCQs for ${sub.name} based on the 2025 Ethiopian Remedial Program. Return JSON array: [{q, options:{A,B,C,D}, answer, explanation(Feynman style), unit}].`;
+        state.questions = await geminiText(prompt, "You are an Ethiopian curriculum expert for the Ministry of Education.");
+        state.qIdx = 0;
+        state.scores[sub.id] = { score: 0, reviews: [] };
+        document.getElementById('ex-title').textContent = sub.name;
+        document.getElementById('loader').classList.remove('active');
+        go('exam');
+        renderQ();
+    } catch (e) {
+        document.getElementById('loader').classList.remove('active');
+        alert("Error: " + e.message);
+    }
+}
+
+function renderQ() {
+    const q = state.questions[state.qIdx];
+    const sub = SUBJECTS[state.currentSubIdx];
+    document.getElementById('ex-progress').textContent = `Question ${state.qIdx + 1} of ${sub.qs}`;
+    document.getElementById('q-text').textContent = q.q;
+    document.getElementById('q-explanation').style.display = 'none';
+    document.getElementById('tts-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('submit-btn').style.display = 'block';
+    document.getElementById('submit-btn').disabled = true;
+
+    const optCont = document.getElementById('q-opts');
+    optCont.innerHTML = '';
+    Object.entries(q.options).forEach(([k, v]) => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.id = `opt-${k}`;
+        b.innerHTML = `<strong>${k}</strong> <span>${v}</span>`;
+        b.onclick = () => {
+            if(document.getElementById('next-btn').style.display === 'block') return;
+            document.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+            b.classList.add('selected');
+            state.tempSelected = k;
+            document.getElementById('submit-btn').disabled = false;
+        };
+        optCont.appendChild(b);
+    });
+}
+
+function handleSubmit() {
+    const q = state.questions[state.qIdx];
+    const sub = SUBJECTS[state.currentSubIdx];
+    const isCorrect = state.tempSelected === q.answer;
+    
+    if(isCorrect) state.scores[sub.id].score += sub.pts;
+    state.scores[sub.id].reviews.push({ ...q, userAns: state.tempSelected, isCorrect });
+
+    if(state.mode === 'now') {
+        document.getElementById(`opt-${q.answer}`).classList.add('correct');
+        if(!isCorrect) document.getElementById(`opt-${state.tempSelected}`).classList.add('wrong');
+        const exp = document.getElementById('q-explanation');
+        exp.style.display = 'block';
+        exp.innerHTML = `<strong>💡 Feynman Insight:</strong> ${q.explanation}`;
+        document.getElementById('tts-btn').style.display = 'block';
+        document.getElementById('submit-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'block';
+    } else {
+        handleNext();
+    }
+}
+
+function handleNext() {
+    state.qIdx++;
+    if(state.qIdx < state.questions.length) renderQ();
+    else {
+        const subId = SUBJECTS[state.currentSubIdx].id;
+        if(!state.user.completed.includes(subId)) state.user.completed.push(subId);
+        state.user.data[subId] = state.scores[subId].score;
+        saveProgress();
+        showReport(subId);
+    }
+}
+
+async function showReport(subId) {
+    const sub = SUBJECTS.find(s => s.id === subId);
+    go('report');
+    document.getElementById('review-section').style.display = 'block';
+    document.getElementById('report-title').textContent = `${sub.name} Result`;
+    document.getElementById('final-total').textContent = `${state.user.data[subId]} / 100`;
+    
+    document.getElementById('strategy-content').innerHTML = "✨ Coach G is analyzing your diagnostic performance...";
+    try {
+        const advice = await geminiText(`Student scored ${state.user.data[subId]}/100 in ${sub.name}. Give a short encouraging remedial study tip.`, "", false);
+        document.getElementById('strategy-content').textContent = advice;
+    } catch(e) { document.getElementById('strategy-content').textContent = "Keep working hard!"; }
+
+    const list = document.getElementById('review-list');
+    list.innerHTML = '';
+    const revs = state.scores[subId]?.reviews || [];
+    revs.forEach((r, idx) => {
+        const div = document.createElement('div');
+        div.style.padding = '20px';
+        div.style.borderBottom = '1px solid var(--border)';
+        div.innerHTML = `
+            <p style="font-weight:700; margin-bottom:8px;">Q${idx+1}: ${r.q}</p>
+            <p style="font-size:14px; margin-bottom:10px; color: ${r.isCorrect ? 'var(--green)' : 'var(--red)'}">
+                Your choice: <b>${r.userAns}</b> — Correct: <b>${r.answer}</b>
+            </p>
+            <button class="btn sm outline" onclick="toggleChat(${idx}, '${subId}')">✨ Ask AI Tutor</button>
+            <div id="chat-${idx}" style="display:none" class="chat-ui"></div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+async function askAiTutor(idx, subId) {
+    const input = document.getElementById(`chat-in-${idx}`);
+    const box = document.getElementById(`chat-box-${idx}`);
+    const query = input.value.trim();
+    if(!query) return;
+
+    box.innerHTML += `<div class="chat-msg msg-user">${query}</div>`;
+    input.value = '';
+    
+    try {
+        const qData = state.scores[subId].reviews[idx];
+        const prompt = `Context: ${qData.q}. Answer: ${qData.answer}. Explanation: ${qData.explanation}. Student says: "${query}". Help them as a kind remedial tutor.`;
+        const response = await geminiText(prompt, "Helpful Ethiopian Remedial Tutor.", false);
+        box.innerHTML += `<div class="chat-msg msg-ai">${response}</div>`;
+    } catch(e) {
+        box.innerHTML += `<div class="chat-msg msg-ai">Sorry, I'm having trouble connecting right now.</div>`;
+    }
+}
+
+function toggleChat(idx, subId) {
+    const container = document.getElementById(`chat-${idx}`);
+    if(container.innerHTML !== "") {
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        return;
+    }
+    container.style.display = 'block';
+    container.innerHTML = `
+        <div id="chat-box-${idx}" style="display:flex; flex-direction:column;">
+            <div class="chat-msg msg-ai">Need a deeper explanation for this specific question?</div>
+        </div>
+        <div class="chat-input-row">
+            <input type="text" id="chat-in-${idx}" placeholder="Type your doubt here...">
+            <button class="btn sm" onclick="askAiTutor(${idx}, '${subId}')">Ask</button>
+        </div>
+    `;
+}
+
+function speakExplanation() {
+    const q = state.questions[state.qIdx];
+    geminiTTS(q.explanation);
+}
+
+function saveProgress() {
+    const total = Object.values(state.user.data).reduce((a,b)=>a+b, 0);
+    const entry = { name: state.user.name, data: {...state.user.data}, completed: [...state.user.completed], total, date: new Date().toLocaleDateString() };
+    const idx = state.history.findIndex(h => h.name.toLowerCase() === state.user.name.toLowerCase());
+    if(idx > -1) state.history[idx] = entry;
+    else state.history.push(entry);
+    localStorage.setItem('remedial_v5_history', JSON.stringify(state.history));
+    updateLogUI();
+}
+
+function updateLogUI() {
+    const body = document.getElementById('log-body');
+    body.innerHTML = '';
+    state.history.sort((a,b) => b.total - a.total).forEach(h => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><b>${h.name}</b></td><td>${h.data.math||0}</td><td>${h.data.physics||0}</td><td>${h.data.english||0}</td><td>${h.data.biology||0}</td><td>${h.data.chemistry||0}</td><td style="color:var(--accent); font-weight:800;">${h.total}</td><td>${h.date}</td>`;
+        body.appendChild(tr);
+    });
+}
+
+async function finishAll() {
+    go('report');
+    document.getElementById('review-section').style.display = 'none';
+    document.getElementById('report-title').textContent = "Final Success Roadmap";
+    document.getElementById('strategy-content').innerHTML = "✨ Gemini AI is calculating your total university readiness score...";
+    try {
+        const prompt = `Student Scores: ${JSON.stringify(state.user.data)}. Total: ${Object.values(state.user.data).reduce((a,b)=>a+b,0)}/500. Generate a detailed remedial success plan based on Ethiopian MoE 2025 guidelines.`;
+        const plan = await geminiText(prompt, "University Admission Consultant.", false);
+        document.getElementById('strategy-content').innerHTML = `<div style="white-space:pre-wrap;">${plan}</div>`;
+    } catch(e) {
+        document.getElementById('strategy-content').textContent = "Check your internet and try again!";
+    }
+}
+
+function setMode(m) {
+    state.mode = m;
+    document.getElementById('mode-now').classList.toggle('active', m === 'now');
+    document.getElementById('mode-later').classList.toggle('active', m === 'later');
+}
+</script>
+</body>
+</html>
