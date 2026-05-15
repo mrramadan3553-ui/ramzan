@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CipherVault Pro | Secure Communications</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; cursor: default; }
+        .cyber-bg { background: radial-gradient(circle at 50% 50%, #0f172a, #020617); }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .mono { font-family: 'Fira Code', monospace; }
+        
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        .scanline { position: absolute; width: 100%; height: 2px; background: rgba(52, 211, 153, 0.1); animation: scanline 4s linear infinite; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .stat-bar { height: 4px; border-radius: 2px; transition: width 0.5s ease-in-out; }
+    </style>
+</head>
+<body class="cyber-bg min-h-screen text-slate-300 p-4 md:p-10 flex items-center justify-center">
+
+    <div class="max-w-7xl w-full grid grid-cols-1 xl:grid-cols-12 gap-6 relative">
+        <div class="scanline pointer-events-none"></div>
+
+        <!-- LEFT COLUMN: Input & Control Center -->
+        <div class="xl:col-span-8 space-y-6">
+            <header class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-white">CipherVault <span class="text-emerald-500">Pro</span></h1>
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Encrypted Messaging Module</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-4 text-[10px] font-mono">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> SECURE CONNECTION</span>
+                </div>
+            </header>
+
+            <!-- Main Workspace -->
+            <div class="glass rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+                <div class="mb-6 relative">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Input Message</label>
+                        <span id="char-count" class="text-[10px] mono text-emerald-500/50">0 BYTES</span>
+                    </div>
+                    <textarea id="message" rows="6" 
+                        class="w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-5 text-white focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-700 mono text-sm leading-relaxed"
+                        placeholder="Type the message you want to protect..." oninput="updateAnalytics()"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="md:col-span-1 space-y-4">
+                        <div id="key-panel">
+                            <label class="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">Secret Key</label>
+                            <input type="number" id="key" value="3" min="1" max="25"
+                                class="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-4 text-emerald-400 focus:ring-1 focus:ring-emerald-500 outline-none text-center font-bold text-xl mono">
+                            <p id="algo-note" class="mt-2 text-[10px] text-slate-500 uppercase tracking-widest">Shift with 1–25</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">Cipher Mode</label>
+                            <select id="algorithm" onchange="handleAlgorithmChange()"
+                                class="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-4 text-white outline-none text-sm">
+                                <option value="caesar">Caesar Cipher</option>
+                                <option value="rot13">ROT13</option>
+                                <option value="base64">Base64</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex flex-col justify-end gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button id="encrypt-btn" onclick="processCipher(true)" 
+                                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                                Encrypt Message
+                            </button>
+                            <button id="decrypt-btn" onclick="processCipher(false)" 
+                                class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                                Decrypt Message
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="pasteInput()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest">Paste Input</button>
+                            <button onclick="clearInput()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest">Clear Input</button>
+                            <button onclick="clearOutput()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest">Clear Output</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Processed Output</label>
+                    </div>
+                    <textarea id="result" rows="4" readonly
+                        class="w-full bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-5 text-emerald-400 font-mono text-sm outline-none resize-none"
+                        placeholder="Waiting for input..."></textarea>
+                    
+                    <button onclick="copyResult()" 
+                        class="absolute bottom-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 flex items-center gap-2 group">
+                        <span class="text-[9px] font-bold text-slate-400 group-hover:text-white uppercase tracking-tighter">Copy</span>
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Analytics -->
+        <div class="xl:col-span-4 space-y-6">
+            <div class="glass rounded-3xl p-6 h-full flex flex-col">
+                <h3 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Intelligence Desk
+                </h3>
+
+                <!-- Strength Meter -->
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-1.5">
+                            <span class="text-slate-500">ENTROPY LEVEL</span>
+                            <span id="entropy-val" class="text-emerald-400 mono">0.0</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div id="entropy-bar" class="stat-bar bg-emerald-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-1.5">
+                            <span class="text-slate-500">CIPHER STRENGTH</span>
+                            <span id="strength-txt" class="text-slate-400">WAITING...</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div id="strength-bar" class="stat-bar bg-slate-600" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Log -->
+                <div class="flex-grow flex flex-col">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">System Traffic</label>
+                    <div id="log-container" class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex-grow mono text-[10px] leading-relaxed overflow-y-auto max-h-[350px] custom-scrollbar">
+                        <div class="text-emerald-500/50">> Subsystems operational...</div>
+                        <div class="text-emerald-500/50">> Encryption engine ready...</div>
+                        <div class="text-emerald-500/50">> Awaiting secure input...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-emerald-600 text-white rounded-full font-bold text-xs shadow-2xl opacity-0 transition-all pointer-events-none z-50 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+        <span id="toast-text">Success</span>
+    </div>
+
+    <script>
+        function log(msg, color = "text-emerald-500/50") {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = color;
+            entry.innerText = `> ${msg}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateAnalytics() {
+            const msg = document.getElementById('message').value;
+            const encoder = new TextEncoder();
+            const byteCount = msg ? encoder.encode(msg).length : 0;
+            const charCount = msg.length;
+            document.getElementById('char-count').innerText = `${byteCount} BYTES • ${charCount} CHARS`;
+
+            if (charCount > 0) {
+                const freq = {};
+                for (const char of msg) {
+                    freq[char] = (freq[char] || 0) + 1;
+                }
+
+                const entropyBits = Object.values(freq).reduce((sum, value) => {
+                    const probability = value / charCount;
+                    return sum - probability * Math.log2(probability);
+                }, 0);
+
+                const normalized = Math.min((entropyBits / 4) * 10, 10);
+                const finalEntropy = Math.min(normalized, 9.8).toFixed(1);
+                document.getElementById('entropy-val').innerText = finalEntropy;
+                document.getElementById('entropy-bar').style.width = `${(finalEntropy / 10) * 100}%`;
+
+                let strength = "VERY LOW";
+                let sColor = "bg-red-500";
+                if (finalEntropy > 3.5) { strength = "LOW"; sColor = "bg-orange-500"; }
+                if (finalEntropy > 5.5) { strength = "MODERATE"; sColor = "bg-yellow-500"; }
+                if (finalEntropy > 7) { strength = "HIGH"; sColor = "bg-emerald-500"; }
+                if (finalEntropy > 8.5) { strength = "VERY HIGH"; sColor = "bg-emerald-400"; }
+
+                document.getElementById('strength-txt').innerText = strength;
+                document.getElementById('strength-bar').className = `stat-bar ${sColor}`;
+                document.getElementById('strength-bar').style.width = `${(finalEntropy / 10) * 100}%`;
+            } else {
+                document.getElementById('entropy-val').innerText = "0.0";
+                document.getElementById('entropy-bar').style.width = "0%";
+                document.getElementById('strength-txt').innerText = "WAITING...";
+                document.getElementById('strength-bar').className = "stat-bar bg-slate-600";
+                document.getElementById('strength-bar').style.width = "0%";
+            }
+        }
+
+        function handleAlgorithmChange() {
+            const algorithm = document.getElementById('algorithm').value;
+            const keyInput = document.getElementById('key');
+            const keyPanel = document.getElementById('key-panel');
+            const note = document.getElementById('algo-note');
+            const encryptBtn = document.getElementById('encrypt-btn');
+            const decryptBtn = document.getElementById('decrypt-btn');
+
+            if (algorithm === 'caesar') {
+                keyInput.disabled = false;
+                keyPanel.classList.remove('opacity-50');
+                note.innerText = 'Shift with 1–25';
+                encryptBtn.innerText = 'Encrypt Message';
+                decryptBtn.innerText = 'Decrypt Message';
+            } else if (algorithm === 'rot13') {
+                keyInput.disabled = true;
+                keyPanel.classList.add('opacity-50');
+                note.innerText = 'Fixed ROT13 rotation';
+                encryptBtn.innerText = 'Rotate 13';
+                decryptBtn.innerText = 'Rotate 13';
+            } else {
+                keyInput.disabled = true;
+                keyPanel.classList.add('opacity-50');
+                note.innerText = 'Base64 handles plain text';
+                encryptBtn.innerText = 'Encode Base64';
+                decryptBtn.innerText = 'Decode Base64';
+            }
+
+            log(`Cipher mode switched to ${algorithm.toUpperCase()}.`, 'text-slate-400');
+            updateAnalytics();
+        }
+
+        function processCipher(usePrimaryAction) {
+            const input = document.getElementById('message').value;
+            const algorithm = document.getElementById('algorithm').value;
+            let shift = parseInt(document.getElementById('key').value, 10);
+
+            if (!input) {
+                showToast('No data to process', true);
+                return;
+            }
+
+            if (algorithm === 'caesar' && isNaN(shift)) {
+                showToast('Invalid Key', true);
+                return;
+            }
+
+            const operationLabel = algorithm === 'base64'
+                ? (usePrimaryAction ? 'Encoding' : 'Decoding')
+                : algorithm === 'rot13'
+                    ? 'ROT13 transformation'
+                    : (usePrimaryAction ? 'Encryption' : 'Decryption');
+
+            log(`${operationLabel} sequence initiated...`, 'text-white');
+
+            let result = input;
+            try {
+                if (algorithm === 'caesar') {
+                    if (!usePrimaryAction) {
+                        shift = (26 - (shift % 26)) % 26;
+                    }
+                    result = applyCaesarCipher(input, shift);
+                } else if (algorithm === 'rot13') {
+                    result = applyCaesarCipher(input, 13);
+                } else if (algorithm === 'base64') {
+                    result = usePrimaryAction ? encodeBase64(input) : decodeBase64(input);
+                }
+            } catch (error) {
+                showToast(error.message || 'Processing failed', true);
+                log('Sequence failed: ' + error.message, 'text-red-400');
+                return;
+            }
+
+            document.getElementById('result').value = result;
+            log('Sequence successful. Output written to buffer.', 'text-emerald-400');
+            showToast(usePrimaryAction ? (algorithm === 'base64' ? 'ENCODED' : 'ENCRYPTED') : (algorithm === 'base64' ? 'DECODED' : 'DECRYPTED'));
+        }
+
+        function applyCaesarCipher(text, shift) {
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const base = (code >= 65 && code <= 90) ? 65 : 97;
+                    return String.fromCharCode(((code - base + shift) % 26) + base);
+                }
+                return char;
+            }).join('');
+        }
+
+        function encodeBase64(text) {
+            return window.btoa(unescape(encodeURIComponent(text)));
+        }
+
+        function decodeBase64(text) {
+            return decodeURIComponent(escape(window.atob(text)));
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        function copyResult() {
+            const el = document.getElementById('result');
+            if (!el.value) {
+                showToast('Nothing to copy', true);
+                return;
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(el.value)
+                    .then(() => {
+                        showToast('COPIED');
+                        log('Ciphertext copied to clipboard.');
+                    })
+                    .catch(() => {
+                        fallbackCopy(el.value);
+                        showToast('COPIED');
+                    });
+            } else {
+                fallbackCopy(el.value);
+                showToast('COPIED');
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('message').value = '';
+            updateAnalytics();
+            showToast('INPUT CLEARED');
+        }
+
+        function clearOutput() {
+            document.getElementById('result').value = '';
+            showToast('OUTPUT CLEARED');
+        }
+
+        async function pasteInput() {
+            try {
+                const clipboardText = await navigator.clipboard.readText();
+                if (!clipboardText) {
+                    showToast('Clipboard is empty', true);
+                    return;
+                }
+                document.getElementById('message').value = clipboardText;
+                updateAnalytics();
+                showToast('PASTED');
+            } catch (error) {
+                showToast('Paste failed', true);
+            }
+        }
+
+        function showToast(text, isError = false) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = text;
+            t.style.backgroundColor = isError ? '#ef4444' : '#059669';
+            t.style.opacity = '1';
+            t.style.bottom = '32px';
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.bottom = '24px';
+            }, 2000);
+        }
+
+        window.onload = () => {
+            handleAlgorithmChange();
+            updateAnalytics();
+            log('System standby. Authorized personnel only.');
+        };
+    </script>
+</body>
+</html>
